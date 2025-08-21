@@ -4,7 +4,7 @@ Invertechs Power Plants and Inverters are advanced energy systems designed to op
 
 The integration leverages the Inver Energy App API to communicate with your devices, providing real-time data.
 
-This integration is an alpha release. Please report any issues or provide feedback to help improve the integration. Thank you for your support!
+This integration is an initial release. Please report any issues or provide feedback to help improve the integration. Thank you for your support!
 
 ## Features
 * This integration uses the API to gather the data. It does not work locally. Credentials are required to access the API. It is queried with 5-minute intervals.
