@@ -1,0 +1,18 @@
+{
+    "domain": "invertechs",
+    "name": "Invertechs Technology",
+    "version": "1.0.0",
+    "config_flow": true,
+    "requirements": [],
+    "ssdp": [],
+    "zeroconf": [],
+    "homekit": {},
+    "dependencies": [],
+    "codeowners": [
+        "@mpedziwiatr02"
+    ],
+    "documentation": "https://github.com/mpedziwiatr02/invertechs-integration",
+    "issue_tracker": "https://github.com/mpedziwiatr02/invertechs-integration/issues",
+    "integration_type": "hub",
+    "iot_class": "cloud_polling"
+}
