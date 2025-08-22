@@ -13,13 +13,27 @@ This integration is an initial release. Please report any issues or provide feed
 
 ## Installation
 
+### Using [HACS](https://hacs.xyz/) (recommended)
+
+1. Add the custom repository:
+
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=mpedziwiatr02&repository=Invertechs-Integration)
+2. Restart Home Assistant.
+3. Add the integration:
+
+   [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=invertechs)
+4. Follow the configuration steps. You'll need to provide your e-mail address and password. The integration will discover the devices associated with your account.
+
 ### Manual installation
-1. Copy the folder named `invertechs` from the [latest release](https://github.com/mpedziwiatr02/invertechs-integration/releases/latest) to the `custom_components` folder in your config folder.
-2. Restart Home Assistant
-3. [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=invertechs)
+1. Copy the folder named `invertechs` from the [latest release](https://github.com/mpedziwiatr02/invertechs-integration/releases/latest) to the `custom_components` folder.
+2. Restart Home Assistant.
+3. Add the integration:
+
+   [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=invertechs)
 4. Follow the configuration steps. You'll need to provide your e-mail address and password. The integration will discover the devices associated with your account.
 
 ## Tested devices
+* IS-050S
 * IS-080S
 
 ## Disclaimer
