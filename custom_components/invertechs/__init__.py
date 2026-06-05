@@ -23,7 +23,12 @@ from .const import (
     FAST_UPDATE_INTERVAL,
 )
 from .coordinator_data import fetch_fast_power_plants, fetch_full_power_plants
-from .polling import apply_polling_mode
+from .polling import (
+    mark_device_offline_snapshot,
+    should_reduce_device_polling,
+    should_reduce_fast_polling,
+    update_polling_after_fast,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +82,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "cached_device_data": None,
         "reduced_polling": False,
         "inverters_online": True,
+        "offline_fast_snapshot_taken": False,
+        "offline_device_snapshot_taken": False,
     }
 
     async def async_update_fast():
@@ -84,29 +91,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             plants = await fetch_fast_power_plants(
                 client,
                 entry_data.get("cached_fast_data"),
-                reduced_polling=entry_data.get("reduced_polling", False),
+                reduced_polling=should_reduce_fast_polling(entry_data),
             )
         except InvertechsAuthError as err:
             raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except (InvertechsConnectionError, InvertechsApiError, InvertechsError) as err:
             raise UpdateFailed(f"Error fetching live power plant data: {err}") from err
         entry_data["cached_fast_data"] = plants
-        apply_polling_mode(entry_data, fast_coordinator, plants)
+        update_polling_after_fast(
+            entry_data, fast_coordinator, device_coordinator, plants
+        )
         return plants
 
     async def async_update_devices():
+        reduced_polling = should_reduce_device_polling(entry_data)
         try:
             plants = await fetch_full_power_plants(
                 client,
                 entry_data.get("cached_device_data"),
-                reduced_polling=entry_data.get("reduced_polling", False),
+                reduced_polling=reduced_polling,
             )
         except InvertechsAuthError as err:
             raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except (InvertechsConnectionError, InvertechsApiError, InvertechsError) as err:
             raise UpdateFailed(f"Error fetching device data: {err}") from err
-        if not entry_data.get("reduced_polling", False):
+        if not reduced_polling:
             entry_data["cached_device_data"] = plants
+            mark_device_offline_snapshot(entry_data)
         return plants
 
     fast_coordinator = DataUpdateCoordinator(
