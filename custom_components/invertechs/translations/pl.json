@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Invertechs",
+        "description": "Połącz się za pomocą danych logowania z aplikacji Inver Energy.",
+        "data": {
+          "email": "E-mail",
+          "password": "Hasło",
+          "region": "Region serwera"
+        },
+        "data_description": {
+          "region": "Wybierz region API zgodny z kontem w aplikacji Inver Energy."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponowne logowanie Invertechs",
+        "description": "Hasło do Invertechs zostało zmienione. Wprowadź nowe hasło.",
+        "data": {
+          "password": "Hasło"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Nieprawidłowy e-mail lub hasło.",
+      "cannot_connect": "Nie można połączyć z API Invertechs."
+    },
+    "abort": {
+      "already_configured": "To konto jest już skonfigurowane.",
+      "reauth_successful": "Ponowne logowanie zakończone powodzeniem."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Invertechs",
+        "data": {
+          "region": "Region serwera"
+        },
+        "data_description": {
+          "region": "Wybierz region API zgodny z kontem w aplikacji Inver Energy."
+        }
+      }
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "eu": "Europa",
+        "cn": "Chiny"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_power": { "name": "Aktualna moc" },
+      "daily_energy": { "name": "Energia dzienna" },
+      "monthly_energy": { "name": "Energia miesięczna" },
+      "yearly_energy": { "name": "Energia roczna" },
+      "total_energy": { "name": "Energia całkowita" },
+      "temperature": { "name": "Temperatura" },
+      "output_voltage": { "name": "Napięcie wyjściowe" },
+      "output_current": { "name": "Prąd wyjściowy" },
+      "output_frequency": { "name": "Częstotliwość wyjściowa" },
+      "output_power": { "name": "Moc wyjściowa" },
+      "input_1_voltage": { "name": "Napięcie wejścia 1" },
+      "input_1_current": { "name": "Prąd wejścia 1" },
+      "input_1_power": { "name": "Moc wejścia 1" },
+      "input_2_voltage": { "name": "Napięcie wejścia 2" },
+      "input_2_current": { "name": "Prąd wejścia 2" },
+      "input_2_power": { "name": "Moc wejścia 2" },
+      "input_3_voltage": { "name": "Napięcie wejścia 3" },
+      "input_3_current": { "name": "Prąd wejścia 3" },
+      "input_3_power": { "name": "Moc wejścia 3" },
+      "input_4_voltage": { "name": "Napięcie wejścia 4" },
+      "input_4_current": { "name": "Prąd wejścia 4" },
+      "input_4_power": { "name": "Moc wejścia 4" },
+      "input_5_voltage": { "name": "Napięcie wejścia 5" },
+      "input_5_current": { "name": "Prąd wejścia 5" },
+      "input_5_power": { "name": "Moc wejścia 5" },
+      "input_6_voltage": { "name": "Napięcie wejścia 6" },
+      "input_6_current": { "name": "Prąd wejścia 6" },
+      "input_6_power": { "name": "Moc wejścia 6" }
+    },
+    "binary_sensor": {
+      "connection": { "name": "Połączenie" },
+      "status": { "name": "Status" }
+    },
+    "number": {
+      "power_limit_percent": { "name": "Limit mocy" }
+    }
+  }
+}
