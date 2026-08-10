@@ -7,10 +7,12 @@ The integration leverages the Inver Energy App API to communicate with your devi
 Please report any issues or provide feedback to help improve the integration. Thank you for your support!
 
 ## Features
-* This integration uses the API to gather the data. It does not work locally. Credentials are required to access the API. While inverters are online, power plant metrics and power limits are refreshed every 30 seconds; when all inverters are offline, polling is reduced to every 5 minutes (IoT probe for connection only). Inverter detail readings are refreshed every 5 minutes while online and paused when offline.
-* Inverter **Power limit** is exposed as a number entity (2–100 %) and can be changed when the device is online.
+* Uses the Inver Energy cloud API — not local. Credentials and a server region (Europe or China) are required at setup. Region can be changed later under integration **Options**, and re-authentication is available if your password changes.
 * Each power plant is a separate device with sensors and diagnostic indicators. The "Status" indicator provides some extra attributes.
 * Each inverter is connected to a power plant and created as a separate device with its own sensors and indicators. The "Status" indicator provides some extra attributes.
+* Inverter **Power limit** is exposed as a number entity (2 - 100 %) and can be changed when the device is online.
+* While inverters are online, power plant metrics and power limits are refreshed every 30 seconds; inverter detail readings are refreshed every 5 minutes. When all inverters are offline, polling is reduced to every 5 minutes (IoT probe for connection only) and device detail fetches are paused.
+* When an inverter goes offline, instantaneous readings (power, temperature, voltage, current, and similar) become **unavailable**. Energy counters keep their last known values. Lifetime total energy is monotonic, and daily/monthly/yearly counters use period resets with `last_reset` when the API reports a full rollover to near zero.
 
 ## Installation
 
@@ -61,7 +63,7 @@ Base URL: `https://appeu.invertechs.com/cniotapi/` (Europe) or `https://appcn.in
 | `app/wn/editPowerPercent` | On user action | Power limit (write) |
 | `app/wnData/getWnDataDetails` | Device (5 min online) | Current power, daily/monthly/yearly/total energy, temperature, output voltage/current/frequency/power, DC input sensors, Status (alarm) |
 
-When all inverters are offline, fast polling uses cached plant data plus `refreshStationDataDetails` and an IoT probe; device detail fetches are paused until an inverter is online again.
+When all inverters go offline, the integration fetches inverter details once more, clears instantaneous values from the cached snapshot, then pauses device detail polling until an inverter is online again. Fast polling keeps using cached plant data plus `refreshStationDataDetails` and an IoT probe for connection status.
 
 ## Tested devices
 * IS-050S

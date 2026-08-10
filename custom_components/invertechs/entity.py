@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntityDescription
@@ -18,9 +20,15 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .client import InvertechsClient
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+ENERGY_VALUE_EPSILON = 0.001
+ENERGY_PERIOD_RESET_THRESHOLD = 0.01
 
 MANUFACTURER = "Invertechs (Xiamen) Technology Co., Ltd."
 DEVICE_TYPE_INVERTER = 0
@@ -91,13 +99,23 @@ INVERTER_INPUT_SENSOR_KEYS: tuple[InverterInputSensorKeys, ...] = (
 )
 
 
-def _energy_description(key: str, translation_key: str) -> SensorEntityDescription:
+def _lifetime_energy_description(key: str, translation_key: str) -> SensorEntityDescription:
     return SensorEntityDescription(
         key=key,
         translation_key=translation_key,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
+    )
+
+
+def _period_energy_description(key: str, translation_key: str) -> SensorEntityDescription:
+    return SensorEntityDescription(
+        key=key,
+        translation_key=translation_key,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL,
     )
 
 
@@ -109,10 +127,10 @@ POWER_PLANT_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    _energy_description("dayPowerGeneration", "daily_energy"),
-    _energy_description("monthPowerGeneration", "monthly_energy"),
-    _energy_description("yearPowerGeneration", "yearly_energy"),
-    _energy_description("totalPowerGeneration", "total_energy"),
+    _period_energy_description("dayPowerGeneration", "daily_energy"),
+    _period_energy_description("monthPowerGeneration", "monthly_energy"),
+    _period_energy_description("yearPowerGeneration", "yearly_energy"),
+    _lifetime_energy_description("totalPowerGeneration", "total_energy"),
 )
 
 INVERTER_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
@@ -123,10 +141,10 @@ INVERTER_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    _energy_description("dayPowerGeneration", "daily_energy"),
-    _energy_description("monthPowerGeneration", "monthly_energy"),
-    _energy_description("yearPowerGeneration", "yearly_energy"),
-    _energy_description("totalPowerGeneration", "total_energy"),
+    _period_energy_description("dayPowerGeneration", "daily_energy"),
+    _period_energy_description("monthPowerGeneration", "monthly_energy"),
+    _period_energy_description("yearPowerGeneration", "yearly_energy"),
+    _lifetime_energy_description("totalPowerGeneration", "total_energy"),
     SensorEntityDescription(
         key="temp",
         translation_key="temperature",
@@ -226,6 +244,144 @@ def inverter_device_info(
 
 
 INVERTER_ONLINE_STATUS = 1
+
+ENERGY_SENSOR_KEYS = frozenset(
+    {
+        "dayPowerGeneration",
+        "monthPowerGeneration",
+        "yearPowerGeneration",
+        "totalPowerGeneration",
+    }
+)
+
+LIFETIME_ENERGY_KEYS = frozenset({"totalPowerGeneration"})
+
+PERIOD_ENERGY_KEYS = frozenset(
+    {
+        "dayPowerGeneration",
+        "monthPowerGeneration",
+        "yearPowerGeneration",
+    }
+)
+
+
+def is_energy_sensor_key(key: str) -> bool:
+    """Return True for cumulative energy counters that stay when offline."""
+    return key in ENERGY_SENSOR_KEYS
+
+
+def is_period_energy_key(key: str) -> bool:
+    """Return True for period energy counters that reset with last_reset."""
+    return key in PERIOD_ENERGY_KEYS
+
+
+def is_lifetime_energy_key(key: str) -> bool:
+    """Return True for monotonic lifetime energy counters."""
+    return key in LIFETIME_ENERGY_KEYS
+
+
+@dataclass(frozen=True)
+class NormalizedEnergyValue:
+    """Processed energy reading for entity state updates."""
+
+    value: float | None
+    last_value: float | None
+    last_reset: datetime | None = None
+
+
+def normalize_energy_value(
+    key: str,
+    raw: Any,
+    last_value: float | None,
+    *,
+    last_reset: datetime | None = None,
+) -> NormalizedEnergyValue:
+    """Filter bogus API dips and detect legitimate period resets."""
+    if raw is None:
+        return NormalizedEnergyValue(last_value, last_value, last_reset)
+
+    try:
+        new_value = float(raw)
+    except (TypeError, ValueError):
+        return NormalizedEnergyValue(None, last_value, last_reset)
+
+    if last_value is None:
+        return NormalizedEnergyValue(new_value, new_value, last_reset)
+
+    if new_value >= last_value - ENERGY_VALUE_EPSILON:
+        return NormalizedEnergyValue(new_value, new_value, last_reset)
+
+    if is_lifetime_energy_key(key):
+        _LOGGER.debug(
+            "Rejected decreasing lifetime energy for %s: %.4f -> %.4f",
+            key,
+            last_value,
+            new_value,
+        )
+        return NormalizedEnergyValue(last_value, last_value, last_reset)
+
+    if is_period_energy_key(key):
+        if new_value <= ENERGY_PERIOD_RESET_THRESHOLD:
+            reset_at = dt_util.utcnow()
+            _LOGGER.debug(
+                "Accepted period energy reset for %s: %.4f -> %.4f",
+                key,
+                last_value,
+                new_value,
+            )
+            return NormalizedEnergyValue(new_value, new_value, reset_at)
+
+        _LOGGER.debug(
+            "Rejected partial period energy drop for %s: %.4f -> %.4f",
+            key,
+            last_value,
+            new_value,
+        )
+        return NormalizedEnergyValue(last_value, last_value, last_reset)
+
+    return NormalizedEnergyValue(new_value, new_value, last_reset)
+
+
+def inverter_measurement_keys() -> frozenset[str]:
+    """Return API field names for inverter measurements cleared when offline."""
+    keys = {
+        description.key
+        for description in INVERTER_SENSOR_DESCRIPTIONS
+        if description.state_class == SensorStateClass.MEASUREMENT
+    }
+    for input_keys in INVERTER_INPUT_SENSOR_KEYS:
+        keys.add(input_keys.voltage)
+        keys.add(input_keys.current)
+        keys.add(input_keys.power)
+    return frozenset(keys)
+
+
+def is_inverter_online(power_plant: dict[str, Any], wn_id: str) -> bool:
+    """Return True when live IoT data reports the inverter as online."""
+    wn = get_live_inverter(power_plant, wn_id)
+    if not wn:
+        return False
+    return wn.get("onlineStatus") == INVERTER_ONLINE_STATUS
+
+
+def sanitize_inverter_details(details: dict[str, Any]) -> dict[str, Any]:
+    """Clear instantaneous readings while keeping energy counters."""
+    sanitized = dict(details)
+    for key in inverter_measurement_keys():
+        sanitized[key] = None
+    return sanitized
+
+
+def sanitize_offline_device_plants(power_plants: list[dict[str, Any]]) -> None:
+    """Clear inverter measurement fields before caching offline device data."""
+    for power_plant in power_plants:
+        for device in power_plant.get("devices", []):
+            if device.get("devicesType") != DEVICE_TYPE_INVERTER or not device.get("wnStationVo"):
+                continue
+            wn = device["wnStationVo"]
+            details = wn.get("details")
+            if isinstance(details, dict):
+                wn["details"] = sanitize_inverter_details(details)
 
 
 def inverters_are_online(power_plant: dict[str, Any]) -> bool:

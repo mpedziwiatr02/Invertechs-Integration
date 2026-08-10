@@ -73,6 +73,7 @@ def discover_inverter_sensor_entities(
     coordinator: DataUpdateCoordinator[list[dict[str, Any]]],
     entry: ConfigEntry,
     state: EntityDiscoveryState,
+    fast_coordinator: DataUpdateCoordinator[list[dict[str, Any]]],
 ) -> list[Any]:
     """Build inverter detail sensor entities (slow polling)."""
     from .sensor import InvertechsInverterSensor
@@ -95,7 +96,13 @@ def discover_inverter_sensor_entities(
                     continue
                 entities.append(
                     InvertechsInverterSensor(
-                        coordinator, entry, power_plant_id, wn_id, device_info, description
+                        coordinator,
+                        entry,
+                        power_plant_id,
+                        wn_id,
+                        device_info,
+                        description,
+                        fast_coordinator,
                     )
                 )
 
@@ -126,7 +133,13 @@ def discover_inverter_sensor_entities(
                         continue
                     entities.append(
                         InvertechsInverterSensor(
-                            coordinator, entry, power_plant_id, wn_id, device_info, description
+                            coordinator,
+                            entry,
+                            power_plant_id,
+                            wn_id,
+                            device_info,
+                            description,
+                            fast_coordinator,
                         )
                     )
     return entities

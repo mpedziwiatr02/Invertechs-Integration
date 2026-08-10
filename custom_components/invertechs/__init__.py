@@ -23,6 +23,7 @@ from .const import (
     FAST_UPDATE_INTERVAL,
 )
 from .coordinator_data import fetch_fast_power_plants, fetch_full_power_plants
+from .entity import sanitize_offline_device_plants
 from .polling import (
     mark_device_offline_snapshot,
     should_reduce_device_polling,
@@ -116,6 +117,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except (InvertechsConnectionError, InvertechsApiError, InvertechsError) as err:
             raise UpdateFailed(f"Error fetching device data: {err}") from err
         if not reduced_polling:
+            if not entry_data.get("inverters_online", True):
+                sanitize_offline_device_plants(plants)
             entry_data["cached_device_data"] = plants
             mark_device_offline_snapshot(entry_data)
         return plants

@@ -48,20 +48,16 @@ async def _fetch_live_or_cache(
     station_id: str,
     cached_plant: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Probe IoT for inverter connection; reuse cache when the inverter is unreachable."""
+    """Probe IoT for inverter connection; stay offline when the probe fails."""
     try:
         return await client.get_station_wn_power_info(station_id)
     except InvertechsError as err:
         _LOGGER.debug(
-            "IoT probe failed for station %s (%s), using cached live data",
+            "IoT probe failed for station %s (%s), treating inverters as offline",
             station_id,
             err,
         )
-        if cached_plant:
-            live = cached_plant.get("live")
-            if isinstance(live, dict):
-                return live
-        return {}
+        return {"wnVoList": []}
 
 
 async def fetch_full_power_plants(
