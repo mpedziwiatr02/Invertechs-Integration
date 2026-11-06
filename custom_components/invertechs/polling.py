@@ -27,7 +27,7 @@ def should_reduce_device_polling(entry_data: dict[str, Any]) -> bool:
     return entry_data.get("offline_device_snapshot_taken", False)
 
 
-def update_polling_after_fast(
+async def update_polling_after_fast(
     entry_data: dict[str, Any],
     fast_coordinator: DataUpdateCoordinator,
     device_coordinator: DataUpdateCoordinator,
@@ -51,7 +51,7 @@ def update_polling_after_fast(
             )
             entry_data["offline_fast_snapshot_taken"] = True
             entry_data["offline_device_snapshot_taken"] = False
-            device_coordinator.async_request_refresh()
+            await device_coordinator.async_request_refresh()
         elif not entry_data.get("offline_fast_snapshot_taken", False):
             entry_data["offline_fast_snapshot_taken"] = True
 

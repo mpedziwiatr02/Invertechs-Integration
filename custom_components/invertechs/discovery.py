@@ -20,6 +20,7 @@ from .entity import (
     INVERTER_SENSOR_DESCRIPTIONS,
     POWER_PLANT_BINARY_SENSOR_DESCRIPTIONS,
     POWER_PLANT_SENSOR_DESCRIPTIONS,
+    ensure_power_plant_device_id,
     get_live_data,
     inverter_device_info,
     inverter_device_info_from_live,
@@ -81,6 +82,9 @@ def discover_inverter_sensor_entities(
     entities: list[Any] = []
     for power_plant in coordinator.data or []:
         power_plant_id = power_plant["id"]
+        via_device_id = ensure_power_plant_device_id(
+            coordinator.hass, entry, power_plant
+        )
         for device in power_plant.get("devices", []):
             if device.get("devicesType") != DEVICE_TYPE_INVERTER or not device.get("wnStationVo"):
                 continue
@@ -89,7 +93,9 @@ def discover_inverter_sensor_entities(
             wn_details = wn.get("details", {})
             wn_id = wn["wnId"]
             model = wn_details.get("model", "Unknown")
-            device_info = inverter_device_info(wn_id, wn_details, model, power_plant_id)
+            device_info = inverter_device_info(
+                wn_id, wn_details, model, via_device_id
+            )
 
             for description in INVERTER_SENSOR_DESCRIPTIONS:
                 if not _register(state, entry, f"{wn_id}_{description.key}"):
@@ -189,6 +195,9 @@ def discover_inverter_live_binary_sensor_entities(
     connection_description = INVERTER_BINARY_SENSOR_DESCRIPTIONS[0]
     for power_plant in fast_coordinator.data or []:
         power_plant_id = power_plant["id"]
+        via_device_id = ensure_power_plant_device_id(
+            fast_coordinator.hass, entry, power_plant
+        )
         for wn in get_live_data(power_plant).get("wnVoList", []):
             wn_id = wn.get("wnId")
             if not wn_id:
@@ -201,7 +210,7 @@ def discover_inverter_live_binary_sensor_entities(
                     entry,
                     power_plant_id,
                     wn_id,
-                    inverter_device_info_from_live(wn, power_plant_id),
+                    inverter_device_info_from_live(wn, via_device_id),
                     connection_description,
                 )
             )
@@ -220,6 +229,9 @@ def discover_inverter_binary_sensor_entities(
     alarm_description = INVERTER_BINARY_SENSOR_DESCRIPTIONS[1]
     for power_plant in coordinator.data or []:
         power_plant_id = power_plant["id"]
+        via_device_id = ensure_power_plant_device_id(
+            coordinator.hass, entry, power_plant
+        )
         for device in power_plant.get("devices", []):
             if device.get("devicesType") != DEVICE_TYPE_INVERTER or not device.get("wnStationVo"):
                 continue
@@ -228,7 +240,9 @@ def discover_inverter_binary_sensor_entities(
             wn_details = wn.get("details", {})
             wn_id = wn["wnId"]
             model = wn_details.get("model", "Unknown")
-            device_info = inverter_device_info(wn_id, wn_details, model, power_plant_id)
+            device_info = inverter_device_info(
+                wn_id, wn_details, model, via_device_id
+            )
 
             if not _register(state, entry, f"{wn_id}_{alarm_description.key}"):
                 continue
@@ -256,6 +270,9 @@ def discover_inverter_power_limit_entities(
     entities: list[Any] = []
     for power_plant in fast_coordinator.data or []:
         power_plant_id = power_plant["id"]
+        via_device_id = ensure_power_plant_device_id(
+            fast_coordinator.hass, entry, power_plant
+        )
         for wn in get_live_data(power_plant).get("wnVoList", []):
             wn_id = wn.get("wnId")
             if not wn_id:
@@ -268,7 +285,7 @@ def discover_inverter_power_limit_entities(
                     entry,
                     power_plant_id,
                     wn_id,
-                    inverter_device_info_from_live(wn, power_plant_id),
+                    inverter_device_info_from_live(wn, via_device_id),
                 )
             )
     return entities

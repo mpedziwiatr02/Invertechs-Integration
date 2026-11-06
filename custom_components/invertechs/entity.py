@@ -18,6 +18,9 @@ from homeassistant.const import (
     UnitOfPower,
     UnitOfTemperature,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -224,11 +227,28 @@ def power_plant_device_info(power_plant: dict[str, Any]) -> DeviceInfo:
     )
 
 
+def ensure_power_plant_device_id(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    power_plant: dict[str, Any],
+) -> str:
+    """Register the power plant device if needed and return its registry id."""
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, power_plant["id"])},
+        manufacturer=MANUFACTURER,
+        model=POWER_PLANT_MODEL,
+        model_id=power_plant["id"],
+        name=power_plant.get("stationName") or power_plant["id"],
+    )
+    return device.id
+
+
 def inverter_device_info(
     wn_id: str,
     wn_details: dict[str, Any],
     model: str,
-    power_plant_id: str,
+    via_device_id: str,
 ) -> DeviceInfo:
     """Build device registry info for an inverter."""
     return DeviceInfo(
@@ -239,7 +259,7 @@ def inverter_device_info(
         model_id=wn_details.get("wnId"),
         sw_version=wn_details.get("softwareVersion"),
         hw_version=wn_details.get("hardwareVersion"),
-        via_device=(DOMAIN, power_plant_id),
+        via_device_id=via_device_id,
     )
 
 
@@ -428,7 +448,7 @@ def get_inverter_power_limit_percent(power_plant: dict[str, Any], wn_id: str) ->
 
 def inverter_device_info_from_live(
     wn: dict[str, Any],
-    power_plant_id: str,
+    via_device_id: str,
 ) -> DeviceInfo:
     """Build device registry info for an inverter using live IoT data."""
     model = wn.get("modelVersion") or "Unknown"
@@ -440,7 +460,7 @@ def inverter_device_info_from_live(
         model_id=wn.get("wnId"),
         sw_version=wn.get("softwareVersion"),
         hw_version=wn.get("hardwareVersion"),
-        via_device=(DOMAIN, power_plant_id),
+        via_device_id=via_device_id,
     )
 
 

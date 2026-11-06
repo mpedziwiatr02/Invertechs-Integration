@@ -99,7 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except (InvertechsConnectionError, InvertechsApiError, InvertechsError) as err:
             raise UpdateFailed(f"Error fetching live power plant data: {err}") from err
         entry_data["cached_fast_data"] = plants
-        update_polling_after_fast(
+        await update_polling_after_fast(
             entry_data, fast_coordinator, device_coordinator, plants
         )
         return plants
